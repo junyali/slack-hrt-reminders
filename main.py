@@ -1,7 +1,7 @@
 import os
 import pytz
 from dotenv import load_dotenv
-from config import TIMEZONE
+from config import TIMEZONE, get_initial_reminder_message, get_acknowledged_reminder_message, get_completed_reminder_message
 from slack_bolt import App
 from slack_bolt.adapter.socket_mode import SocketModeHandler
 from apscheduler.schedulers.background import BackgroundScheduler
@@ -20,7 +20,10 @@ TIMEZONE = pytz.timezone(TIMEZONE)
 last_reminder = {
     "ts": None,
     "channel": None,
-    "state": "initial"
+    "state": "initial",
+    "poked_who": None,
+    "poked_when": None,
+    "taken_when": None,
 }
 
 def send_reminder():
@@ -34,40 +37,20 @@ def send_reminder():
             )
         except Exception as e:
             print(e)
-
     try:
+        message_content = get_initial_reminder_message()
         response = app.client.chat_postMessage(
             channel=CHANNEL_ID,
-            text="HRT Reminder!",
-            blocks=[
-                {
-                    "type": "Section",
-                    "text": {
-                        "type": "mrkdwn",
-                        "text": "HRT Reminder! Poke me :3"
-                    }
-                },
-                {
-                    "type": "actions",
-                    "elements": [
-                        {
-                            "type": "button",
-                            "text": {
-                                "type": "plain_text",
-                                "text": "poke!"
-                            },
-                            "style": "primary",
-                            "action_id": "reminder_first_click"
-                        }
-                    ]
-                }
-            ]
+            **message_content
         )
 
         last_reminder = {
             "ts": response["ts"],
             "channel": CHANNEL_ID,
-            "state": "initial"
+            "state": "initial",
+            "poked_who": None,
+            "poked_when": None,
+            "taken_when": None,
         }
 
         print(f"Reminder sent at {datetime.now(TIMEZONE)}")
@@ -83,36 +66,16 @@ def handle_first_click(ack, body, client):
     channel_id = body["channel"]["id"]
 
     try:
+        message_content = get_acknowledged_reminder_message(user_id, USER_ID)
         client.chat_update(
-            channel=channel_id,
+            channel=CHANNEL_ID,
             ts=message_ts,
-            text="Poke!",
-            blocks=[
-                {
-                    "type": "Section",
-                    "text": {
-                        "type": "mrkdwn",
-                        "text": f"<@{USER_ID}>, <@{user_id}> poked you!"
-                    }
-                },
-                {
-                    "type": "actions",
-                    "elements": [
-                        {
-                            "type": "button",
-                            "text": {
-                                "type": "plain_text",
-                                "text": "done"
-                            },
-                            "style": "danger",
-                            "action_id": "reminder_complete"
-                        }
-                    ]
-                }
-            ]
+            **message_content
         )
 
         last_reminder["state"] = "first_clicked"
+        last_reminder["poked_who"] = user_id
+        last_reminder["poked_when"] = datetime.now(TIMEZONE).isoformat()
     except Exception as e:
         print(e)
 
@@ -134,24 +97,16 @@ def handle_complete(ack, body, client):
         except Exception as e:
             print(e)
         return
-
     try:
+        message_content = get_completed_reminder_message(user_id, USER_ID)
         client.chat_update(
-            channel=channel_id,
+            channel=CHANNEL_ID,
             ts=message_ts,
-            text="Done!",
-            blocks=[
-                {
-                    "type": "Section",
-                    "text": {
-                        "type": "mrkdwn",
-                        "text": "Done!"
-                    }
-                }
-            ]
+            **message_content
         )
 
         last_reminder["state"] = "completed"
+        last_reminder["taken_when"] = datetime.now(TIMEZONE).isoformat()
     except Exception as e:
         print(e)
 
