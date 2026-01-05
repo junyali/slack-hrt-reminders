@@ -1,5 +1,6 @@
 import os
 import pytz
+import logging
 from dotenv import load_dotenv
 from config import TIMEZONE, LOG_TO_CANVAS, get_initial_reminder_message, get_acknowledged_reminder_message, get_completed_reminder_message
 from slack_bolt import App
@@ -25,6 +26,28 @@ last_reminder = {
     "poked_when": None,
     "taken_when": None,
 }
+
+# stolen right from one of my old discord bots: https://github.com/junyali/Anya/blob/main/main.py
+def setup_logging():
+    formatter = logging.Formatter(
+        "%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+        datefmt="[%Y-%m-%d %H:%M:%S]"
+    )
+
+    console_handler = logging.StreamHandler()
+    console_handler.setLevel(logging.DEBUG)
+    console_handler.setFormatter(formatter)
+
+    file_handler = logging.FileHandler("latest.log")
+    file_handler.setLevel(logging.DEBUG)
+    file_handler.setFormatter(formatter)
+
+    root_logger = logging.getLogger()
+    root_logger.setLevel(logging.DEBUG)
+    root_logger.addHandler(console_handler)
+    root_logger.addHandler(file_handler)
+
+    logger = logging.getLogger(__name__)
 
 def log_to_canvas(reminder_data):
     if not LOG_TO_CANVAS or not CANVAS_ID:
@@ -59,8 +82,9 @@ def log_to_canvas(reminder_data):
                 }
             ]
         )
+        logging.info(f"[CANVAS] Logged to {CANVAS_ID}")
     except Exception as e:
-        print(e)
+        logging.error(f"[CANVAS] Failed to log to {CANVAS_ID}: {e}")
 
 def send_reminder():
     global last_reminder
@@ -92,9 +116,9 @@ def send_reminder():
             "taken_when": None,
         }
 
-        print(f"Reminder sent at {datetime.now(TIMEZONE)}")
+        logging.info(f"[REMINDER] Sent to {CHANNEL_ID}")
     except Exception as e:
-        print(e)
+        logging.error(f"[REMINDER] Failed to send to {CHANNEL_ID}: {e}")
 
 @app.action("reminder_first_click")
 def handle_first_click(ack, body, client):
@@ -115,8 +139,9 @@ def handle_first_click(ack, body, client):
         last_reminder["state"] = "first_clicked"
         last_reminder["poked_who"] = user_id
         last_reminder["poked_when"] = datetime.now(TIMEZONE).isoformat()
+        logging.info(f"[REMINDER] Poked by {user_id}")
     except Exception as e:
-        print(e)
+        logging.error(f"[REMINDER] Failed update reminder: {e}")
 
 @app.action("reminder_complete")
 def handle_complete(ack, body, client):
@@ -146,8 +171,9 @@ def handle_complete(ack, body, client):
 
         last_reminder["state"] = "completed"
         last_reminder["taken_when"] = datetime.now(TIMEZONE).isoformat()
+        logging.info(f"[REMINDER] Taken!")
     except Exception as e:
-        print(e)
+        logging.error(f"[REMINDER] Failed update reminder: {e}")
 
 def setup_scheduler():
     scheduler = BackgroundScheduler(timezone=TIMEZONE)
@@ -208,6 +234,8 @@ def setup_scheduler():
     return scheduler
 
 def main():
+    setup_logging()
+    logging.info("Starting!")
     scheduler = setup_scheduler()
     handler = SocketModeHandler(app, os.environ.get("SLACK_APP_TOKEN"))
     handler.start()
