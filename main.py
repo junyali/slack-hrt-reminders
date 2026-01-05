@@ -162,7 +162,7 @@ def handle_complete(ack, body, client):
             print(e)
         return
     try:
-        message_content = get_completed_reminder_message(user_id, USER_ID)
+        message_content = get_completed_reminder_message(last_reminder["poked_who"], USER_ID)
         client.chat_update(
             channel=channel_id,
             ts=message_ts,
