@@ -1,6 +1,8 @@
 import os
 import pytz
 from dotenv import load_dotenv
+from slack_sdk.models.messages.message import message
+
 from config import USER_ID, CHANNEL_ID, TIMEZONE
 from slack_bolt import App
 from slack_bolt.adapter.socket_mode import SocketModeHandler
@@ -68,6 +70,48 @@ def send_reminder():
         }
 
         print(f"Reminder sent at {datetime.now(TIMEZONE)}")
+    except Exception as e:
+        print(e)
+
+@app.action("reminder_first_click")
+def handle_first_click(ack, body, client):
+    ack()
+
+    user_id = body["user"]["id"]
+    message_ts = body["message"]["ts"]
+    channel_id = body["channel"]["id"]
+
+    try:
+        client.chat_update(
+            channel=channel_id,
+            ts=message_ts,
+            text="Poke!",
+            blocks=[
+                {
+                    "type": "Section",
+                    "text": {
+                        "type": "mrkdwn",
+                        "text": f"<@{USER_ID}>, <@{user_id}> poked you!"
+                    }
+                },
+                {
+                    "type": "actions",
+                    "elements": [
+                        {
+                            "type": "button",
+                            "text": {
+                                "type": "plain_text",
+                                "text": "done"
+                            },
+                            "style": "danger",
+                            "action_id": "reminder_complete"
+                        }
+                    ]
+                }
+            ]
+        )
+
+        last_reminder["state"] = "first_clicked"
     except Exception as e:
         print(e)
 
