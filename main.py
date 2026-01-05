@@ -1,7 +1,7 @@
 import os
 import pytz
 from dotenv import load_dotenv
-from config import TIMEZONE, get_initial_reminder_message, get_acknowledged_reminder_message, get_completed_reminder_message
+from config import TIMEZONE, LOG_TO_CANVAS, get_initial_reminder_message, get_acknowledged_reminder_message, get_completed_reminder_message
 from slack_bolt import App
 from slack_bolt.adapter.socket_mode import SocketModeHandler
 from apscheduler.schedulers.background import BackgroundScheduler
@@ -26,8 +26,47 @@ last_reminder = {
     "taken_when": None,
 }
 
+def log_to_canvas(reminder_data):
+    if not LOG_TO_CANVAS or not CANVAS_ID:
+        return
+
+    try:
+        time = datetime.now(TIMEZONE).isoformat()
+        poked_who = f"<@{reminder_data["poked_who"]}>" if reminder_data["poked_who"] else "N/A"
+        poked_when = reminder_data["poked_when"] or "N/A"
+        taken_when = reminder_data["taken_when"] or "N/A"
+        duration = "N/A"
+
+        if reminder_data["poked_when"] and reminder_data["taken_when"]:
+            try:
+                start = datetime.fromisoformat(poked_who)
+                end = datetime.fromisoformat(taken_when)
+                duration = round((end - start).total_seconds() / 60, 1)
+            except:
+                duration = "N/A"
+
+        table_row = f"\n{time},{poked_who},{poked_when},{taken_when},{duration}"
+
+        app.client.canvases_edit(
+            canvas_id=CANVAS_ID,
+            changes=[
+                {
+                    "operation": "insert_at_end",
+                    "document_content": {
+                        "type": "markdown",
+                        "markdown": table_row
+                    }
+                }
+            ]
+        )
+    except Exception as e:
+        print(e)
+
 def send_reminder():
     global last_reminder
+
+    if last_reminder["state"] == "completed" and last_reminder["taken_when"]:
+        log_to_canvas(last_reminder)
 
     if last_reminder["ts"] and last_reminder["channel"]:
         try:

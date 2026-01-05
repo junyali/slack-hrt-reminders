@@ -1,4 +1,5 @@
 TIMEZONE = "Europe/London"
+LOG_TO_CANVAS = True
 
 def get_initial_reminder_message():
     return {
