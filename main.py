@@ -1,7 +1,7 @@
 import os
 import pytz
 from dotenv import load_dotenv
-from config import USER_ID, CHANNEL_ID, TIMEZONE
+from config import TIMEZONE
 from slack_bolt import App
 from slack_bolt.adapter.socket_mode import SocketModeHandler
 from apscheduler.schedulers.background import BackgroundScheduler
@@ -12,6 +12,9 @@ load_dotenv()
 
 app = App(token=os.environ.get("SLACK_BOT_TOKEN"))
 
+USER_ID = os.environ.get("USER_ID")
+CHANNEL_ID = os.environ.get("CHANNEL_ID")
+CANVAS_ID = os.environ.get("CANVAS_ID")
 TIMEZONE = pytz.timezone(TIMEZONE)
 
 last_reminder = {

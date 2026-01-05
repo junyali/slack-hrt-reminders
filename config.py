@@ -1,3 +1,1 @@
-USER_ID = ""
-CHANNEL_ID = ""
-TIMEZONE = ""
+TIMEZONE = "Europe/London"
