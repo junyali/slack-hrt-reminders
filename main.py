@@ -107,7 +107,7 @@ def handle_first_click(ack, body, client):
     try:
         message_content = get_acknowledged_reminder_message(user_id, USER_ID)
         client.chat_update(
-            channel=CHANNEL_ID,
+            channel=channel_id,
             ts=message_ts,
             **message_content
         )
@@ -139,7 +139,7 @@ def handle_complete(ack, body, client):
     try:
         message_content = get_completed_reminder_message(user_id, USER_ID)
         client.chat_update(
-            channel=CHANNEL_ID,
+            channel=channel_id,
             ts=message_ts,
             **message_content
         )
