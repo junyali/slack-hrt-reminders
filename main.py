@@ -115,6 +115,45 @@ def handle_first_click(ack, body, client):
     except Exception as e:
         print(e)
 
+@app.action("reminder_complete")
+def handle_complete(ack, body, client):
+    ack()
+
+    user_id = body["user"]["id"]
+    message_ts = body["message"]["ts"]
+    channel_id = body["channel"]["id"]
+
+    if user_id != USER_ID:
+        try:
+            client.chat_postEphemeral(
+                channel=channel_id,
+                user=user_id,
+                text="you can't do that, silly! >.<"
+            )
+        except Exception as e:
+            print(e)
+        return
+
+    try:
+        client.chat_update(
+            channel=channel_id,
+            ts=message_ts,
+            text="Done!",
+            blocks=[
+                {
+                    "type": "Section",
+                    "text": {
+                        "type": "mrkdwn",
+                        "text": "Done!"
+                    }
+                }
+            ]
+        )
+
+        last_reminder["state"] = "completed"
+    except Exception as e:
+        print(e)
+
 def setup_scheduler():
     scheduler = BackgroundScheduler(timezone=TIMEZONE)
 
