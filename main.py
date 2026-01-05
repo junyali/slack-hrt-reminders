@@ -1,8 +1,6 @@
 import os
 import pytz
 from dotenv import load_dotenv
-from slack_sdk.models.messages.message import message
-
 from config import USER_ID, CHANNEL_ID, TIMEZONE
 from slack_bolt import App
 from slack_bolt.adapter.socket_mode import SocketModeHandler
@@ -157,10 +155,63 @@ def handle_complete(ack, body, client):
 def setup_scheduler():
     scheduler = BackgroundScheduler(timezone=TIMEZONE)
 
+    scheduler.add_job(
+        send_reminder,
+        CronTrigger(
+            day_of_week="mon-fri",
+            hour=7,
+            minute=0,
+            second=0,
+            timezone=TIMEZONE
+        ),
+        id="weekday_morning",
+        replace_existing=True
+    )
+
+    scheduler.add_job(
+        send_reminder,
+        CronTrigger(
+            day_of_week="mon-fri",
+            hour=19,
+            minute=0,
+            second=0,
+            timezone=TIMEZONE
+        ),
+        id="weekday_evening",
+        replace_existing=True
+    )
+
+    scheduler.add_job(
+        send_reminder,
+        CronTrigger(
+            day_of_week="sat-sun",
+            hour=10,
+            minute=0,
+            second=0,
+            timezone=TIMEZONE
+        ),
+        id="weekend_morning",
+        replace_existing=True
+    )
+
+    scheduler.add_job(
+        send_reminder,
+        CronTrigger(
+            day_of_week="sat-sun",
+            hour=22,
+            minute=0,
+            second=0,
+            timezone=TIMEZONE
+        ),
+        id="weekend_evening",
+        replace_existing=True
+    )
+
     scheduler.start()
     return scheduler
 
 def main():
+    scheduler = setup_scheduler()
     handler = SocketModeHandler(app, os.environ.get("SLACK_APP_TOKEN"))
     handler.start()
 
