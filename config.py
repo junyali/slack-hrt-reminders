@@ -123,7 +123,7 @@ def get_acknowledged_reminder_message(user_id, owner_id):
                 "type": "section",
                 "text": {
                     "type": "mrkdwn",
-                    "text": f"<@{owner_id}>, <@{user_id}> poked you! :neocat_boop_blush:"
+                    "text": f"<@{owner_id}>, <@{user_id}> poked you ^-^! :neocat_boop_blush:"
                 }
             },
             {
@@ -202,7 +202,7 @@ def get_completed_reminder_message(user_id, owner_id):
                 "type": "section",
                 "text": {
                     "type": "mrkdwn",
-                    "text": f"<@{owner_id}>, <@{user_id}> poked you! marked as taken :yay:"
+                    "text": f"<@{owner_id}>, <@{user_id}> poked you ^-^! marked as taken :yay:"
                 }
             },
             {
